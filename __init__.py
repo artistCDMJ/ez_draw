@@ -1845,8 +1845,7 @@ class SculptLiquid(bpy.types.Operator):
         bpy.ops.sculpt.sculptmode_toggle()
         bpy.context.scene.tool_settings.sculpt.use_symmetry_x = False
         bpy.ops.view3d.localview()
-        bpy.ops.paint.texture_paint_toggle()
-
+        
         return {'FINISHED'}
 
 class ReprojectMask(bpy.types.Operator):
