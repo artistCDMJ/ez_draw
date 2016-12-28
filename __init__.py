@@ -30,11 +30,6 @@ bl_info = {"name": "EasyDRAW Artist Paint Panel",
            "warning": "Run only in BI now",
            "category": "Paint"}
 
-'''
-Modif: 2016-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-Modif: 2016-02'01 Patrick optimize the code
-'''
-
 import bpy
 from bpy.types import   AddonPreferences,\
                         Menu,\
@@ -1785,11 +1780,25 @@ class SculptDuplicate(bpy.types.Operator):
 
         #new code
         bpy.ops.paint.texture_paint_toggle()
-        bpy.ops.object.duplicate_move(OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":(0, 0, 0), "constraint_axis":(False, False, False), "constraint_orientation":'GLOBAL', "mirror":False, "proportional":'DISABLED', "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "snap":False, "snap_target":'CLOSEST', "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "texture_space":False, "remove_on_cancel":False, "release_confirm":False})
-        bpy.ops.transform.translate(value=(0, 0, 0.1), constraint_axis=(False, False, True), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SMOOTH', proportional_size=1)
+        bpy.ops.object.duplicate_move(
+                    OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'}, \
+                    TRANSFORM_OT_translate={"value":(0, 0, 0), "constraint_axis":\
+                    (False, False, False), "constraint_orientation":'GLOBAL', \
+                    "mirror":False, "proportional":'DISABLED', \
+                    "proportional_edit_falloff":'SMOOTH', "proportional_size":1,\
+                    "snap":False, "snap_target":'CLOSEST', "snap_point":(0, 0, 0),\
+                    "snap_align":False, "snap_normal":(0, 0, 0), \
+                    "gpencil_strokes":False, "texture_space":False, \
+                    "remove_on_cancel":False, "release_confirm":False})
+        bpy.ops.transform.translate(
+                    value=(0, 0, 0.1), constraint_axis=(False, False, True), \
+                    constraint_orientation='GLOBAL', mirror=False, \
+                    proportional='DISABLED', proportional_edit_falloff='SMOOTH', \
+                    proportional_size=1)
         bpy.context.object.active_material.use_shadeless = True
         bpy.context.object.active_material.use_transparency = True
         bpy.context.object.active_material.transparency_method = 'Z_TRANSPARENCY'
+        bpy.ops.view3d.localview()
         bpy.ops.paint.texture_paint_toggle()
 
 
@@ -1835,6 +1844,8 @@ class SculptLiquid(bpy.types.Operator):
         bpy.ops.mesh.subdivide(number_cuts=2, smoothness=0)
         bpy.ops.sculpt.sculptmode_toggle()
         bpy.context.scene.tool_settings.sculpt.use_symmetry_x = False
+        bpy.ops.view3d.localview()
+        bpy.ops.paint.texture_paint_toggle()
 
         return {'FINISHED'}
 
@@ -1853,7 +1864,10 @@ class ReprojectMask(bpy.types.Operator):
 
         #new code
         bpy.ops.object.editmode_toggle() #toggle edit mode
-        bpy.ops.uv.project_from_view(camera_bounds=True, correct_aspect=False, scale_to_bounds=False) #project from view
+        bpy.ops.uv.project_from_view(\
+                camera_bounds=True, \
+                correct_aspect=False, \
+                scale_to_bounds=False) #project from view
         bpy.ops.object.editmode_toggle() #toggle back from edit mode
         bpy.ops.object.convert(target='MESH')#in obj mode, convert to mesh for correction on Artist Panel Vector Masks/Gpencil Masks
 
@@ -1883,7 +1897,12 @@ class SolidfyDifference(bpy.types.Operator):
 
             bpy.ops.object.modifier_add(type='SOLIDIFY')#set soldifiy for bool
             bpy.context.object.modifiers["Solidify"].thickness = 0.3#thicker than active
-            bpy.ops.transform.translate(value=(0, 0, 0.01), constraint_axis=(False, False, True), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SMOOTH', proportional_size=1, release_confirm=True)#attempt to only move bool brush up in Z
+            bpy.ops.transform.translate(value=(0, 0, 0.01), \
+                        constraint_axis=(False, False, True), \
+                        constraint_orientation='GLOBAL', \
+                        mirror=False, proportional='DISABLED', \
+                        proportional_edit_falloff='SMOOTH', \
+                        proportional_size=1, release_confirm=True)#attempt to only move bool brush up in Z
 
             context.scene.objects.active = act#reset active
 
@@ -1893,7 +1912,11 @@ class SolidfyDifference(bpy.types.Operator):
 
 
             bpy.ops.object.modifier_add(type='SOLIDIFY')#basic soldify for boolean
-            bpy.ops.transform.translate(value=(0, 0, 0), constraint_axis=(False, False, True), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SMOOTH', proportional_size=1, release_confirm=True)#to move active 0 in Z
+            bpy.ops.transform.translate(value=(0, 0, 0), \
+                    constraint_axis=(False, False, True), \
+                    constraint_orientation='GLOBAL', mirror=False, \
+                    proportional='DISABLED', proportional_edit_falloff='SMOOTH', \
+                    proportional_size=1, release_confirm=True)#to move active 0 in Z
 
 
             bpy.ops.btool.boolean_diff()#call booltool
@@ -1901,11 +1924,6 @@ class SolidfyDifference(bpy.types.Operator):
 
             return {'FINISHED'}
 
-
-        #user moves parent and then adjusts child
-        #user calls reproject while in obj mode which returns mask to texpaint
-
-#next operator
 class SolidfyUnion(bpy.types.Operator):
     """Solidify and Union Mask"""
     bl_idname = "artist_paint.solidfy_union"
@@ -1929,7 +1947,6 @@ class SolidfyUnion(bpy.types.Operator):
 
             bpy.ops.object.modifier_add(type='SOLIDIFY')#set soldifiy for bool
             bpy.context.object.modifiers["Solidify"].thickness = 0.3#thicker than active
-            #bpy.ops.transform.translate(value=(0, 0, 0.01), constraint_axis=(False, False, True), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SMOOTH', proportional_size=1, release_confirm=True)#attempt to only move bool brush up in Z
 
             context.scene.objects.active = act#reset active
 
@@ -1939,20 +1956,12 @@ class SolidfyUnion(bpy.types.Operator):
 
             bpy.ops.object.modifier_add(type='SOLIDIFY')#basic soldify for boolean
             bpy.context.object.modifiers["Solidify"].thickness = 0.3#thicker than active
-            #bpy.ops.transform.translate(value=(0, 0, 0), constraint_axis=(False, False, True), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SMOOTH', proportional_size=1, release_confirm=True)#to move active 0 in Z
-
 
             bpy.ops.btool.boolean_union()#call booltool
 
 
             return {'FINISHED'}
 
-
-        #user moves parent and then adjusts child
-        #user calls reproject while in obj mode which returns mask to texpaint
-
-
-#next operator
 class RemoveMods(bpy.types.Operator):
     """Remove Modifiers"""
     bl_idname = "artist_paint.remove_modifiers"
@@ -1960,36 +1969,21 @@ class RemoveMods(bpy.types.Operator):
     bl_options = { 'REGISTER','UNDO' }
 
     def execute(self, context):
-        scene = context.scene
-
-
-        #new code
         context = bpy.context
         scene = context.scene
         obj = context.object
 
-        # get a reference to the current obj.data
-        old_mesh = obj.data
-
-        # settings for to_mesh
-        apply_modifiers = False
+        old_mesh = obj.data# get a reference to the current obj.data
+        apply_modifiers = False# settings for to_mesh
         settings = 'PREVIEW'
         new_mesh = obj.to_mesh(scene, apply_modifiers, settings)
-
-        # object will still have modifiers, remove them
-        obj.modifiers.clear()
-
-        # assign the new mesh to obj.data
-        obj.data = new_mesh
-
-        # remove the old mesh from the .blend
-        bpy.data.meshes.remove(old_mesh)
+        obj.modifiers.clear()# object will still have modifiers, remove them
+        obj.data = new_mesh# assign the new mesh to obj.data
+        bpy.data.meshes.remove(old_mesh)# remove the old mesh from the .blend
         bpy.context.object.draw_type = 'TEXTURED'
 
-
-
-
         return {'FINISHED'}
+
 class AlignLeft(bpy.types.Operator):
     """Left Align"""
     bl_idname = "object.align_left"
@@ -1998,8 +1992,8 @@ class AlignLeft(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        #new code
-        bpy.ops.object.align(align_mode='OPT_1', relative_to='OPT_4', align_axis={'X'}) #toggle texpaint
+
+        bpy.ops.object.align(align_mode='OPT_1', relative_to='OPT_4', align_axis={'X'})
         return {'FINISHED'}
 
 class AlignCenter(bpy.types.Operator):
@@ -2010,8 +2004,8 @@ class AlignCenter(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        #new code
-        bpy.ops.object.align(align_mode='OPT_2', relative_to='OPT_4', align_axis={'X'}) #toggle texpaint
+
+        bpy.ops.object.align(align_mode='OPT_2', relative_to='OPT_4', align_axis={'X'})
         scene.mask_V_align = True
         return {'FINISHED'}
 
@@ -2023,8 +2017,8 @@ class AlignRight(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        #new code
-        bpy.ops.object.align(align_mode='OPT_3', relative_to='OPT_4', align_axis={'X'}) #toggle texpaint
+
+        bpy.ops.object.align(align_mode='OPT_3', relative_to='OPT_4', align_axis={'X'})
         return {'FINISHED'}
 
 class AlignTop(bpy.types.Operator):
@@ -2035,7 +2029,7 @@ class AlignTop(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        #new code
+
         bpy.ops.object.align(align_mode='OPT_3', relative_to='OPT_4', align_axis={'Y'})
         return {'FINISHED'}
 
@@ -2047,7 +2041,7 @@ class AlignHcenter(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        #new code
+
         bpy.ops.object.align(align_mode='OPT_2', relative_to='OPT_4', align_axis={'Y'})
         scene.mask_V_align = False
         return {'FINISHED'}
@@ -2074,12 +2068,11 @@ class AlignBottom(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        #new code
+
         bpy.ops.object.align(align_mode='OPT_1', relative_to='OPT_4', align_axis={'Y'})
         return {'FINISHED'}
 
 ############################### SCULPT & PAINT REFERENCE+
-
 #--------------------------------------------------Create reference scene
 class RefMakerScene(Operator):
     """Create Reference Scene"""
@@ -2100,7 +2093,7 @@ class RefMakerScene(Operator):
         for sc in bpy.data.scenes:
             if sc.name == "Refmaker":
                 return {'FINISHED'}
-        bpy.ops.scene.new(type='NEW') #add new scene & name it 'Brush'
+        bpy.ops.scene.new(type='NEW')
         context.scene.name = _name
 
         #add camera to center and move up 4 units in Z
@@ -2128,7 +2121,7 @@ class RefMakerScene(Operator):
                 override = bpy.context.copy()
                 override['area'] = area
                 bpy.ops.view3d.viewnumpad(override, type = 'CAMERA')
-                break # this will break the loop after the first ran
+                break
         return {'FINISHED'}
 
 class SculptView(bpy.types.Operator):
@@ -2143,9 +2136,6 @@ class SculptView(bpy.types.Operator):
 
         scene = context.scene
 
-
-        #new code
-
         bpy.ops.object.camera_add(
                     view_align=False,
                     enter_editmode=False,
@@ -2158,25 +2148,16 @@ class SculptView(bpy.types.Operator):
         bpy.context.object.data.show_passepartout = False
         bpy.context.object.data.lens = 80
 
-
         #change to camera view
         for area in bpy.context.screen.areas:
             if area.type == 'VIEW_3D':
                 override = bpy.context.copy()
                 override['area'] = area
                 bpy.ops.view3d.viewnumpad(override, type = 'CAMERA')
-                break # this will break the loop after the first ran
-
-#
-        #bpy.ops.view3d.background_image_add()#ADD IMAGE TO BACKGROUND
-
-        #bpy.context.space_data.show_background_images = True
+                break
 
         bpy.context.scene.render.resolution_x = 1920
         bpy.context.scene.render.resolution_y = 1080
-
-
-
 
         return {'FINISHED'}
 
@@ -2208,8 +2189,7 @@ class CustomFps(bpy.types.Operator):
     bl_options = { 'REGISTER', 'UNDO' }
 
     def execute(self, context):
-        #bpy.context.scene.render.fps = 1
-        #bpy.context.scene.render.fps_base = 12
+
         F = context.scene.render.fps
         if F == 1:
             context.scene.render.fps = 30
