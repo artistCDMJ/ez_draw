@@ -1769,7 +1769,6 @@ class SculptDuplicate(bpy.types.Operator):
     """Duplicate Selected Image Plane, Single User for Eraser Paint"""
     bl_idname = "artist_paint.sculpt_duplicate"
 
-
     bl_label = "Sculpt Liquid Duplicate"
     bl_options = { 'REGISTER', 'UNDO' }
 
@@ -1777,8 +1776,6 @@ class SculptDuplicate(bpy.types.Operator):
 
         scene = context.scene
 
-
-        #new code
         bpy.ops.paint.texture_paint_toggle()
         bpy.ops.object.duplicate_move(
                     OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'}, \
@@ -1801,7 +1798,6 @@ class SculptDuplicate(bpy.types.Operator):
         bpy.ops.view3d.localview()
         bpy.ops.paint.texture_paint_toggle()
 
-
         #make individual
         sel = bpy.context.selected_objects
         for ob in sel:
@@ -1818,11 +1814,7 @@ class SculptDuplicate(bpy.types.Operator):
                     except:
                         pass
 
-
-
         return {'FINISHED'}
-
-
 
 class SculptLiquid(bpy.types.Operator):
     """Convert to Subdivided Plane & Sculpt Liquid"""
@@ -1836,16 +1828,16 @@ class SculptLiquid(bpy.types.Operator):
 
         scene = context.scene
 
-
-        #new code
         bpy.ops.paint.texture_paint_toggle()
         bpy.ops.object.editmode_toggle()
         bpy.ops.mesh.subdivide(number_cuts=100, smoothness=0)
         bpy.ops.mesh.subdivide(number_cuts=2, smoothness=0)
         bpy.ops.sculpt.sculptmode_toggle()
+        bpy.ops.paint.brush_select(paint_mode='SCULPT', sculpt_tool='GRAB')
         bpy.context.scene.tool_settings.sculpt.use_symmetry_x = False
         bpy.ops.view3d.localview()
-        
+
+
         return {'FINISHED'}
 
 class ReprojectMask(bpy.types.Operator):
@@ -1860,8 +1852,6 @@ class ReprojectMask(bpy.types.Operator):
 
         scene = context.scene
 
-
-        #new code
         bpy.ops.object.editmode_toggle() #toggle edit mode
         bpy.ops.uv.project_from_view(\
                 camera_bounds=True, \
@@ -1883,8 +1873,6 @@ class SolidfyDifference(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
 
-
-        #new code
         sel = bpy.context.selected_objects
         act = bpy.context.scene.objects.active
 
@@ -1901,7 +1889,8 @@ class SolidfyDifference(bpy.types.Operator):
                         constraint_orientation='GLOBAL', \
                         mirror=False, proportional='DISABLED', \
                         proportional_edit_falloff='SMOOTH', \
-                        proportional_size=1, release_confirm=True)#attempt to only move bool brush up in Z
+                        proportional_size=1, \
+                        release_confirm=True)#attempt to only move bool brush up in Z
 
             context.scene.objects.active = act#reset active
 
