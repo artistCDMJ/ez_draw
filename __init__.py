@@ -1798,6 +1798,18 @@ class SculptDuplicate(bpy.types.Operator):
         bpy.ops.view3d.localview()
         bpy.ops.paint.texture_paint_toggle()
 
+        #make ERASER brush or use exisitng
+        try:
+            context.tool_settings.image_paint.brush = bpy.data.brushes["Eraser"]
+            pass
+        except:
+            context.tool_settings.image_paint.brush = bpy.data.brushes["TexDraw"]
+            bpy.ops.brush.add()
+            bpy.data.brushes["TexDraw.001"].name="Eraser"
+            bpy.context.scene.tool_settings.unified_paint_settings.use_pressure_size = False
+            bpy.data.brushes["Eraser"].use_pressure_strength = False
+            bpy.data.brushes["Eraser"].blend = 'ERASE_ALPHA'
+
         #make individual
         sel = bpy.context.selected_objects
         for ob in sel:
