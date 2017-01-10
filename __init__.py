@@ -22,9 +22,9 @@
 # <pep8 compliant>
 
 bl_info = {"name": "EasyDRAW Artist Paint Panel",
-           "author": "CDMJ, Spirou4D, proxe",
+           "author": "CDMJ, Spirou4D, proxe, Jason van Gumster (Fweeb)",
            "version": (2, 20, 0),
-           "blender": (2, 77, 0),
+           "blender": (2, 78, 0),
            "location": "Toolbar > Misc Tab > EZDRAW",
            "description": "EasyDRAW Artist Paint Panel",
            "warning": "Run only in BI now",
@@ -2200,6 +2200,12 @@ class CustomFps(bpy.types.Operator):
 
         return {'FINISHED'}
 
+#############################################################Lock View Rotation
+def lock_ui(self, context):
+    layout = self.layout
+
+    layout.prop(context.space_data.region_3d, 'lock_rotation', text='Lock View Rotation')
+
 
 ##############################################################  panel
 class ArtistPanel(Panel):
@@ -2296,12 +2302,18 @@ class ArtistPanel(Panel):
         row2.operator("artist_paint.cameraview_paint",
                     text = "Set Camera",
                     icon = 'RENDER_REGION')
+
         row3 = row.split(align=True)
+
+        row3.prop(context.space_data.region_3d, 'lock_rotation',\
+                    text= "",\
+                    icon = 'KEY_HLT')
 
         Icon = 'CLIPUV_DEHLT' if BIA else 'BORDER_RECT'
         row3.operator("artist_paint.border_toggle",
                     text = "",
                     icon = Icon)
+
 
         Icun = 'CLIPUV_DEHLT' if GAA else 'MOD_LATTICE'
         row3.operator("artist_paint.guides_toggle",
