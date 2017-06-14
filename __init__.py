@@ -26,7 +26,7 @@ bl_info = {"name": "EasyDRAW Artist Paint Panel",
            "version": (2, 20, 0),
            "blender": (2, 78, 0),
            "location": "Toolbar > Misc Tab > EZDRAW",
-           "description": "EasyDRAW Artist Paint Panel",
+           "description": "EZDraw 2D Paint Panel",
            "warning": "Run only in BI now",
            "category": "Paint"}
 
