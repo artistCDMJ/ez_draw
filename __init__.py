@@ -326,9 +326,9 @@ class ArtistPaintLoad(Operator):
                         directory=fileDIR,
                         filter_image=True,
                         filter_movie=True,
-                        filter_glob="",
-                        use_transparency=True,
-                        relative=False)
+                        #filter_global="",
+                        use_transparency=True)
+                        #relative=True)
         obj = context.active_object
         select_mat = obj.data.materials[0].texture_slots[0].\
                                             texture.image.size[:]
@@ -2221,9 +2221,9 @@ class ArtistPanel(Panel):
 
     def draw_header(self, context):
         if context.scene.UI_is_activated:
-            pic = 'FILE_TICK'
+            pic = 'RADIOBUT_ON'
         else:
-            pic = 'X_VEC'
+            pic = 'RADIOBUT_OFF'
         self.layout.operator("artist_paint.load_init", text = "",
                                                     icon = pic)
 
@@ -2505,7 +2505,7 @@ class ArtistPanel(Panel):
         row.separator()
         row3 = row.split(align=True)
         row3.operator("artist_paint.set_symmetry_origin",
-                    text=" New", icon='VIEW3D_VEC')
+                    text=" New", icon='PLUS')
         row3.scale_x = 1.50
         row4 = row.split(align=True)
         row4.operator("artist_paint.reset_origin", icon='RECOVER_AUTO')
