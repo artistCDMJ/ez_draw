@@ -2205,6 +2205,13 @@ def lock_ui(self, context):
     layout = self.layout
 
     layout.prop(context.space_data.region_3d, 'lock_rotation', text='Lock View Rotation')
+    
+###### Precise Render Border Adjust by Lapineige :D
+
+bpy.types.Scene.x_min_pixels = bpy.props.IntProperty(min=0, description="Minimum X value (in pixel) for the render border")
+bpy.types.Scene.x_max_pixels = bpy.props.IntProperty(min=0, description="Maximum X value (in pixel) for the render border")
+bpy.types.Scene.y_min_pixels = bpy.props.IntProperty(min=0, description="Minimum Y value (in pixel) for the render border")
+bpy.types.Scene.y_max_pixels = bpy.props.IntProperty(min=0, description="Maximum Y value (in pixel) for the render border")
 
 
 ##############################################################  panel
@@ -2334,6 +2341,26 @@ class ArtistPanel(Panel):
                     text = "Incremental Save", icon = 'SAVE_COPY')
         col.operator("render.opengl",
                     text = "Snapshot", icon = 'RENDER_STILL')
+        
+        scene = context.scene
+        
+        if not scene.render.use_border:
+            sub = layout.split(percentage=0.7)
+            sub.label(icon="ERROR", text="Crop not activated:")
+            sub.prop(scene.render, "use_border")
+        
+        sub = layout.column()
+        row = sub.row()
+        row.label(text="Crop Adjust")
+        row.prop(scene.render, "border_max_y", text="Max Y", slider=True)
+        row.label(text="")
+        row = sub.row(align=True)
+        row.prop(scene.render, "border_min_x", text="Min X", slider=True)
+        row.prop(scene.render, "border_max_x", text="Max X", slider=True)
+        row = sub.row()
+        row.label(text="")
+        row.prop(scene.render, "border_min_y", text="Min Y", slider=True)
+        row.label(text="")
 
         row = col.row(align = True)
         row.operator("artist_paint.sculpt_duplicate", text = "Sculpt Duplicate", icon = 'COPY_ID')
