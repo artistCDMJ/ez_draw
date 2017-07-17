@@ -2569,6 +2569,45 @@ class ArtistPanel(Panel):
         col.operator("artist_paint.canvas_resetrot",
                     text = "Reset Rotation", icon = 'CANCEL')
 
+class CanvasIncreasePanel(bpy.types.Panel):
+    
+    bl_label = "Canvas Increase Tools"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_category = "EZDraw"
+    
+    def draw(self, context):
+        layout = self.layout 
+        
+        cam = context.object.data
+        render = context.scene.render
+        
+        row = layout.row()
+        
+        row.prop(cam, "ortho_scale")
+        row = layout.row(align=True)
+        row.prop(cam, "shift_x")
+        row.prop(cam, "shift_y")
+        row = layout.row()
+        row.prop(render, "resolution_percentage")
+
+class ArtistTips(Panel):
+    bl_label = "Texture Paint Plus Tips"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_category = "EZDraw"
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row()
+        row.label(text="win key+W = EZDraw Pie")
+        row = layout.row()
+        row.label(text="W = Brush Popup")
+        row = layout.row()
+        row.label(text="Shift-W = Slots& VGroups")
+        row = layout.row()
+        row.label(text="Alt-W = Texture/Mask Texture")
 
 
 
