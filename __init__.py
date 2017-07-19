@@ -21,12 +21,12 @@
 
 # <pep8 compliant>
 
-bl_info = {"name": "EasyDRAW Artist Paint Panel",
+bl_info = {"name": "EZ Draw",
            "author": "CDMJ, Spirou4D, proxe, Jason van Gumster (Fweeb)",
            "version": (2, 20, 0),
            "blender": (2, 78, 0),
-           "location": "Toolbar > Misc Tab > EZDRAW",
-           "description": "EZDraw 2D Paint Panel",
+           "location": "Toolbar > Misc Tab > EZ Draw",
+           "description": "2D Paint Tools for 3D view",
            "warning": "Run only in BI now",
            "category": "Paint"}
 
@@ -39,6 +39,7 @@ from bpy.types import   AddonPreferences,\
 from bpy.props import *
 import math
 import os
+import _cycles
 SEP = os.sep
 
 MaskMessage = "Name the mask, please..."
@@ -90,6 +91,27 @@ def pollAPT(self, context):
     else:
         return  False
 
+def ezdraw_Init(self, context):
+    scene = context.scene
+    init = scene.UI_is_activated
+    empty = scene.maincanvas_is_empty
+
+    if not(empty):
+        if scene.artist_paint is not None:
+            if len(scene.artist_paint) !=0:
+                main_canvas_0 = scene.artist_paint[0]
+                canvasName = (main_canvas_0.filename)[:-4]
+
+        warning = 'Do you really want to remove "'+ canvasName + \
+                '" from memory and delete all his hierarchy?'
+        state = bpy.ops.error.message('INVOKE_DEFAULT',\
+                                        message = warning,\
+                                        confirm ="error.ok1" )
+    '''
+    else:
+        scene.UI_is_activated = False if init else True
+    '''
+
 #------------------------------------------------Create a collection
 class SceneCustomCanvas(bpy.types.PropertyGroup):
     filename = bpy.props.StringProperty(name="Test Prop", default="")
@@ -104,7 +126,9 @@ bpy.types.Scene.artist_paint = \
 bpy.types.Scene.Viewmode_toggle = \
                             bpy.props.BoolProperty(default=True)
 bpy.types.Scene.UI_is_activated = \
-                            bpy.props.BoolProperty(default=False)
+                            bpy.props.BoolProperty(name = "panel_activation", 
+                                                   default=False,
+                                                   update = ezdraw_Init)
 bpy.types.Scene.maincanvas_is_empty = \
                             bpy.props.BoolProperty(default=True)
 bpy.types.Scene.bordercrop_is_activated = \
@@ -221,7 +245,7 @@ class OkOperator(Operator):
                     '" is  removed in memory and deleted with his hierarchy.'
         self.report({'INFO'}, message)
 
-        bpy.ops.artist_paint.load_init()
+        #ezdraw_Init(self, context)
         return {'FINISHED'}
 
 
@@ -273,7 +297,8 @@ class MTViewMode(Operator):
 
 
 #------------------------------------------------Reset main canvas
-class ArtistPaintLoadtInit(Operator):
+"""
+class ArtistPaintLoadInit(Operator):
     bl_idname = "artist_paint.load_init"
     bl_label = "Init Artist Paint Add-on"
     bl_options = {'REGISTER','UNDO'}
@@ -295,11 +320,9 @@ class ArtistPaintLoadtInit(Operator):
                                             message = warning,\
                                             confirm ="error.ok1" )
         else:
-            if context.scene.UI_is_activated:
-                context.scene.UI_is_activated = False
-            else:
-                context.scene.UI_is_activated = True
+            context.scene.UI_is_activated = False if init else True
         return {'FINISHED'}
+"""
 
 
 #-------------------------------------------------Load main canvas
@@ -371,7 +394,12 @@ class ImageReload(Operator):
     def execute(self, context):
         original_type = context.area.type
         context.area.type = 'IMAGE_EDITOR'
+        
+        obdat =  context.active_object.data
+        ima = obdat.materials[0].texture_slots[0].texture.image
+        context.space_data.image = ima
         bpy.ops.image.reload()       #return image to last saved state
+        
         context.area.type = original_type
         return {'FINISHED'}
 
@@ -392,9 +420,16 @@ class SaveImage(Operator):
             return B
 
     def execute(self, context):
+        obj =  context.active_object
+        #save the original state
         original_type = context.area.type
+        
         context.area.type = 'IMAGE_EDITOR'
+        ima = obj.data.materials[0].texture_slots[0].texture.image
+        context.space_data.image = ima
         bpy.ops.image.save_as()                      #save as
+        
+        #reinstall the original state
         context.area.type = original_type
         return {'FINISHED'}
 
@@ -431,26 +466,24 @@ class SaveIncremImage(Operator):
                         break
         else:
             return {'FINISHED'}
+        
         #init
         obj = context.active_object
         original_type = context.area.type
         context.area.type = 'IMAGE_EDITOR'
-
-        filePATH = os.path.realpath(filePATH)
-        #/.config/blender/Brushes/13_Tâche_de_café/Cafeina (1).png
-
-        _tempName = [canvasName + '_001' + _Ext]
-
-        HOME = os.path.expanduser("~")
-        if filePATH.find(HOME)!=-1:
-            _Dir =  filePATH
-        else:
-            _Dir = HOME + filePATH
-
+        """
+        ~/.config/blender/Brushes/13_Tâche_de_café/Cafeina (1).png
+        /media/patrinux/Autre/VISTA/Patrick/Pictures/1_CAPTURES
+        
+        realpath corrige the path à la racine!
+        /home/patrinux/.config/blender/Brushes/13_Tâche_de_café/Cafeina (1).png
+        /media/patrinux/Autre/VISTA/Patrick/Pictures/1_CAPTURES
+        """
         #verify the brushname
+        _tempName = [canvasName + '_001' + _Ext]
+        _Dir = os.path.realpath(filePATH)
         l = os.listdir(_Dir)
-        brushesName = [ f for f in l if os.path.\
-                                isfile(os.path.join(_Dir,f)) ]
+        brushesName = [ f for f in l if os.path.isfile(os.path.join(_Dir,f)) ]
         brushesName = sorted(brushesName)
 
         i = 1
@@ -463,10 +496,12 @@ class SaveIncremImage(Operator):
 
 
         #return image to last saved state
-        chemin = os.path.join(_Dir,_tempName[-1])
-        bpy.ops.image.save_as(filepath = chemin,
+        filepath = os.path.join(_Dir,_tempName[-1])
+        ima = obj.data.materials[0].texture_slots[0].texture.image
+        context.space_data.image = ima
+        bpy.ops.image.save_as(filepath = filepath,
                                 check_existing=False,
-                                relative_path=False)
+                                relative_path=True)
 
         context.area.type = original_type
         return {'FINISHED'}
@@ -1765,15 +1800,14 @@ class CanvasResetrot(Operator):
         return {'FINISHED'}
 
 #########################################################experimental operations
-class SculptDuplicate(bpy.types.Operator):
+class SculptDuplicate(Operator):
     """Duplicate Selected Image Plane, Single User for Eraser Paint"""
     bl_idname = "artist_paint.sculpt_duplicate"
-
     bl_label = "Sculpt Liquid Duplicate"
     bl_options = { 'REGISTER', 'UNDO' }
 
-    def execute(self, context):
 
+    def execute(self, context):
         scene = context.scene
 
         bpy.ops.paint.texture_paint_toggle()
@@ -1787,14 +1821,16 @@ class SculptDuplicate(bpy.types.Operator):
                     "snap_align":False, "snap_normal":(0, 0, 0), \
                     "gpencil_strokes":False, "texture_space":False, \
                     "remove_on_cancel":False, "release_confirm":False})
-        bpy.ops.transform.translate(
-                    value=(0, 0, 0.1), constraint_axis=(False, False, True), \
-                    constraint_orientation='GLOBAL', mirror=False, \
-                    proportional='DISABLED', proportional_edit_falloff='SMOOTH', \
-                    proportional_size=1)
-        bpy.context.object.active_material.use_shadeless = True
-        bpy.context.object.active_material.use_transparency = True
-        bpy.context.object.active_material.transparency_method = 'Z_TRANSPARENCY'
+        bpy.ops.transform.translate(value=(0, 0, 0.1), \
+                                    constraint_axis=(False, False, True), \
+                                    constraint_orientation='GLOBAL', 
+                                    mirror=False, \
+                                    proportional='DISABLED', 
+                                    proportional_edit_falloff='SMOOTH', \
+                                    proportional_size=1)
+        context.object.active_material.use_shadeless = True
+        context.object.active_material.use_transparency = True
+        context.object.active_material.transparency_method = 'Z_TRANSPARENCY'
         bpy.ops.view3d.localview()
         bpy.ops.paint.texture_paint_toggle()
 
@@ -1806,7 +1842,7 @@ class SculptDuplicate(bpy.types.Operator):
             context.tool_settings.image_paint.brush = bpy.data.brushes["TexDraw"]
             bpy.ops.brush.add()
             bpy.data.brushes["TexDraw.001"].name="Eraser"
-            bpy.context.scene.tool_settings.unified_paint_settings.use_pressure_size = False
+            context.scene.tool_settings.unified_paint_settings.use_pressure_size = False
             bpy.data.brushes["Eraser"].use_pressure_strength = False
             bpy.data.brushes["Eraser"].blend = 'ERASE_ALPHA'
 
@@ -1828,16 +1864,14 @@ class SculptDuplicate(bpy.types.Operator):
 
         return {'FINISHED'}
 
-class SculptLiquid(bpy.types.Operator):
+
+class SculptLiquid(Operator):
     """Convert to Subdivided Plane & Sculpt Liquid"""
     bl_idname = "artist_paint.sculpt_liquid"
-
-
     bl_label = "Sculpt like Liquid"
     bl_options = { 'REGISTER', 'UNDO' }
 
     def execute(self, context):
-
         scene = context.scene
 
         bpy.ops.paint.texture_paint_toggle()
@@ -1846,37 +1880,32 @@ class SculptLiquid(bpy.types.Operator):
         bpy.ops.mesh.subdivide(number_cuts=2, smoothness=0)
         bpy.ops.sculpt.sculptmode_toggle()
         bpy.ops.paint.brush_select(paint_mode='SCULPT', sculpt_tool='GRAB')
-        bpy.context.scene.tool_settings.sculpt.use_symmetry_x = False
+        scene.tool_settings.sculpt.use_symmetry_x = False
         bpy.ops.view3d.localview()
-
 
         return {'FINISHED'}
 
-class ReprojectMask(bpy.types.Operator):
+class ReprojectMask(Operator):
     """Reproject Mask"""
     bl_idname = "artist_paint.reproject_mask"
-
-
     bl_label = "Reproject Mask by View"
     bl_options = { 'REGISTER', 'UNDO' }
 
     def execute(self, context):
-
         scene = context.scene
 
         bpy.ops.object.editmode_toggle() #toggle edit mode
-        bpy.ops.uv.project_from_view(\
-                camera_bounds=True, \
-                correct_aspect=False, \
-                scale_to_bounds=False) #project from view
+        bpy.ops.uv.project_from_view(camera_bounds=True, \
+                                     correct_aspect=False, \
+                                     scale_to_bounds=False) #project from view
         bpy.ops.object.editmode_toggle() #toggle back from edit mode
         bpy.ops.object.convert(target='MESH')#in obj mode, convert to mesh for correction on Artist Panel Vector Masks/Gpencil Masks
-
         bpy.ops.paint.texture_paint_toggle() #toggle texpaint
+        
         return {'FINISHED'}
 
-#next operator
-class SolidfyDifference(bpy.types.Operator):
+
+class SolidfyDifference(Operator):
     """Solidify and Difference Mask"""
     bl_idname = "artist_paint.solidfy_difference"
     bl_label = "Add Solidy and Difference Bool"
@@ -1884,18 +1913,18 @@ class SolidfyDifference(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-
-        sel = bpy.context.selected_objects
-        act = bpy.context.scene.objects.active
+        sel = context.selected_objects
+        act = context.scene.objects.active
 
         for obj in sel:
-            context.scene.objects.active = obj#set active to selected
+            scene.objects.active = obj#set active to selected
+            
             bpy.ops.object.editmode_toggle()
             bpy.ops.mesh.dissolve_faces()#to get a clean single face for paint projection
             bpy.ops.object.editmode_toggle()
 
             bpy.ops.object.modifier_add(type='SOLIDIFY')#set soldifiy for bool
-            bpy.context.object.modifiers["Solidify"].thickness = 0.3#thicker than active
+            context.object.modifiers["Solidify"].thickness = 0.3#thicker than active
             bpy.ops.transform.translate(value=(0, 0, 0.01), \
                         constraint_axis=(False, False, True), \
                         constraint_orientation='GLOBAL', \
@@ -1904,27 +1933,22 @@ class SolidfyDifference(bpy.types.Operator):
                         proportional_size=1, \
                         release_confirm=True)#attempt to only move bool brush up in Z
 
-            context.scene.objects.active = act#reset active
-
+            context.scene.objects.active = act    #reset active
             bpy.ops.object.editmode_toggle()
             bpy.ops.mesh.dissolve_faces()
             bpy.ops.object.editmode_toggle()
-
-
             bpy.ops.object.modifier_add(type='SOLIDIFY')#basic soldify for boolean
             bpy.ops.transform.translate(value=(0, 0, 0), \
                     constraint_axis=(False, False, True), \
                     constraint_orientation='GLOBAL', mirror=False, \
                     proportional='DISABLED', proportional_edit_falloff='SMOOTH', \
                     proportional_size=1, release_confirm=True)#to move active 0 in Z
-
-
             bpy.ops.btool.boolean_diff()#call booltool
-
-
+            
             return {'FINISHED'}
 
-class SolidfyUnion(bpy.types.Operator):
+
+class SolidfyUnion(Operator):
     """Solidify and Union Mask"""
     bl_idname = "artist_paint.solidfy_union"
     bl_label = "Add Solidy and Union Bool"
@@ -1932,59 +1956,58 @@ class SolidfyUnion(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-
-
-        #new code
-        sel = bpy.context.selected_objects
-        act = bpy.context.scene.objects.active
+        #init
+        sel = context.selected_objects
+        act = context.scene.objects.active
 
         for obj in sel:
-            context.scene.objects.active = obj#set active to selected
+            scene.objects.active = obj#set active to selected
 
             bpy.ops.object.editmode_toggle()
             bpy.ops.mesh.dissolve_faces()#to get a single face for paint projection
             bpy.ops.object.editmode_toggle()
 
             bpy.ops.object.modifier_add(type='SOLIDIFY')#set soldifiy for bool
-            bpy.context.object.modifiers["Solidify"].thickness = 0.3#thicker than active
+            context.object.modifiers["Solidify"].thickness = 0.3#thicker than active
 
-            context.scene.objects.active = act#reset active
+            scene.objects.active = act                 #reset active
 
             bpy.ops.object.editmode_toggle()
             bpy.ops.mesh.dissolve_faces()
             bpy.ops.object.editmode_toggle()
 
             bpy.ops.object.modifier_add(type='SOLIDIFY')#basic soldify for boolean
-            bpy.context.object.modifiers["Solidify"].thickness = 0.3#thicker than active
+            context.object.modifiers["Solidify"].thickness = 0.3#thicker than active
 
             bpy.ops.btool.boolean_union()#call booltool
 
-
             return {'FINISHED'}
 
-class RemoveMods(bpy.types.Operator):
+
+class RemoveMods(Operator):
     """Remove Modifiers"""
     bl_idname = "artist_paint.remove_modifiers"
-    bl_label = ""
+    bl_label = "Remove modifiers"
     bl_options = { 'REGISTER','UNDO' }
 
     def execute(self, context):
-        context = bpy.context
         scene = context.scene
         obj = context.object
-
+        #init
         old_mesh = obj.data# get a reference to the current obj.data
+        
         apply_modifiers = False# settings for to_mesh
         settings = 'PREVIEW'
         new_mesh = obj.to_mesh(scene, apply_modifiers, settings)
         obj.modifiers.clear()# object will still have modifiers, remove them
         obj.data = new_mesh# assign the new mesh to obj.data
         bpy.data.meshes.remove(old_mesh)# remove the old mesh from the .blend
-        bpy.context.object.draw_type = 'TEXTURED'
+        context.object.draw_type = 'TEXTURED'
 
         return {'FINISHED'}
 
-class AlignLeft(bpy.types.Operator):
+
+class AlignLeft(Operator):
     """Left Align"""
     bl_idname = "object.align_left"
     bl_label = "Align Objects Left"
@@ -1996,7 +2019,7 @@ class AlignLeft(bpy.types.Operator):
         bpy.ops.object.align(align_mode='OPT_1', relative_to='OPT_4', align_axis={'X'})
         return {'FINISHED'}
 
-class AlignCenter(bpy.types.Operator):
+class AlignCenter(Operator):
     """Center Align"""
     bl_idname = "object.align_center"
     bl_label = "Align Objects Center"
@@ -2009,7 +2032,7 @@ class AlignCenter(bpy.types.Operator):
         scene.mask_V_align = True
         return {'FINISHED'}
 
-class AlignRight(bpy.types.Operator):
+class AlignRight(Operator):
     """Center Align"""
     bl_idname = "object.align_right"
     bl_label = "Align Objects Right"
@@ -2021,7 +2044,7 @@ class AlignRight(bpy.types.Operator):
         bpy.ops.object.align(align_mode='OPT_3', relative_to='OPT_4', align_axis={'X'})
         return {'FINISHED'}
 
-class AlignTop(bpy.types.Operator):
+class AlignTop(Operator):
     """Top Align"""
     bl_idname = "object.align_top"
     bl_label = "Align Objects Top"
@@ -2033,7 +2056,7 @@ class AlignTop(bpy.types.Operator):
         bpy.ops.object.align(align_mode='OPT_3', relative_to='OPT_4', align_axis={'Y'})
         return {'FINISHED'}
 
-class AlignHcenter(bpy.types.Operator):
+class AlignHcenter(Operator):
     """Horizontal Center Align"""
     bl_idname = "object.align_hcenter"
     bl_label = "Align Objects Horizontal Center"
@@ -2046,21 +2069,20 @@ class AlignHcenter(bpy.types.Operator):
         scene.mask_V_align = False
         return {'FINISHED'}
 
-class CenterAlignReset(bpy.types.Operator):
+class CenterAlignReset(Operator):
     """Center Alignment Reset"""
     bl_idname = "object.center_align_reset"
-    bl_label = ""
+    bl_label = "Reset center alignment"
     bl_options = { 'REGISTER', 'UNDO' }
 
     def execute(self, context):
         scene = context.scene
-        if scene.mask_V_align:
-            scene.mask_V_align = False
-        else:
-            scene.mask_V_align = True
+        mva =scene.mask_V_align
+        
+        scene.mask_V_align = False if mva else True
         return {'FINISHED'}
 
-class AlignBottom(bpy.types.Operator):
+class AlignBottom(Operator):
     """Horizontal Bottom Align"""
     bl_idname = "object.align_bottom"
     bl_label = "Align Objects Horizontal Bottom"
@@ -2071,6 +2093,8 @@ class AlignBottom(bpy.types.Operator):
 
         bpy.ops.object.align(align_mode='OPT_1', relative_to='OPT_4', align_axis={'Y'})
         return {'FINISHED'}
+
+
 
 ############################### SCULPT & PAINT REFERENCE+
 #--------------------------------------------------Create reference scene
@@ -2091,20 +2115,19 @@ class RefMakerScene(Operator):
     def execute(self, context):
         _name="Refmaker"
         for sc in bpy.data.scenes:
-            if sc.name == "Refmaker":
+            if sc.name == _name:
                 return {'FINISHED'}
+        
         bpy.ops.scene.new(type='NEW')
         context.scene.name = _name
-
         #add camera to center and move up 4 units in Z
-        bpy.ops.object.camera_add(
-                    view_align=False,
-                    enter_editmode=False,
-                    location=(0, 0, 4),
-                    rotation=(0, 0, 0)
-                    )
+        bpy.ops.object.camera_add(view_align=False,
+                                  enter_editmode=False,
+                                  location=(0, 0, 4),
+                                  rotation=(0, 0, 0)
+                                  )
 
-        context.object.name="Refmaker Camera"      #rename selected camera
+        context.object.name = _name + " Camera"      #rename selected camera
 
         #change scene size to HD
         _RenderScene = context.scene.render
@@ -2113,7 +2136,7 @@ class RefMakerScene(Operator):
         _RenderScene.resolution_percentage = 100
 
         #save scene size as preset
-        bpy.ops.render.preset_add(name = "Refmaker")
+        bpy.ops.render.preset_add(name = _name)
 
         #change to camera view
         for area in bpy.context.screen.areas:
@@ -2124,56 +2147,48 @@ class RefMakerScene(Operator):
                 break
         return {'FINISHED'}
 
-class SculptView(bpy.types.Operator):
+
+class SculptView(Operator):
     """Sculpt View Reference Camera"""
     bl_idname = "object.sculpt_camera"
-
-
     bl_label = "Sculpt Camera"
     bl_options = { 'REGISTER', 'UNDO' }
 
     def execute(self, context):
-
         scene = context.scene
 
-        bpy.ops.object.camera_add(
-                    view_align=False,
-                    enter_editmode=False,
-                    location=(0, -4, 0),
-                    rotation=(1.5708, 0, 0)
-                    )
-
-        context.object.name="Reference Cam" #add camera to front view
-
-        bpy.context.object.data.show_passepartout = False
-        bpy.context.object.data.lens = 80
+        bpy.ops.object.camera_add(view_align=False,
+                                  enter_editmode=False,
+                                  location=(0, -4, 0),
+                                  rotation=(1.5708, 0, 0)
+                                  )
+        context.object.name = "Reference Cam"          #add camera to front view
+        context.object.data.show_passepartout = False
+        context.object.data.lens = 80
 
         #change to camera view
-        for area in bpy.context.screen.areas:
+        for area in context.screen.areas:
             if area.type == 'VIEW_3D':
                 override = bpy.context.copy()
                 override['area'] = area
                 bpy.ops.view3d.viewnumpad(override, type = 'CAMERA')
                 break
-
-        bpy.context.scene.render.resolution_x = 1920
-        bpy.context.scene.render.resolution_y = 1080
+        scene.render.resolution_x = 1920
+        scene.render.resolution_y = 1080
 
         return {'FINISHED'}
 
-class ToggleLock(bpy.types.Operator):
+
+class ToggleLock(Operator):
     """Lock Screen"""
     bl_idname = "object.lock_screen"
-
-
     bl_label = "Lock Screen Toggle"
     bl_options = { 'REGISTER', 'UNDO' }
 
     def execute(self, context):
-
         A = context.space_data.lock_camera
         B = context.space_data.show_only_render
-        if A and B == True:
+        if A and B:
             context.space_data.lock_camera = False
             context.space_data.show_only_render = False
         else:
@@ -2181,22 +2196,22 @@ class ToggleLock(bpy.types.Operator):
             context.space_data.show_only_render = True
         return {'FINISHED'}
 
-class CustomFps(bpy.types.Operator):
+
+
+class CustomFps(Operator):
     """Slow Play FPS"""
     bl_idname = "object.slow_play"
-
     bl_label = "Slow Play FPS Toggle"
     bl_options = { 'REGISTER', 'UNDO' }
 
     def execute(self, context):
-
         F = context.scene.render.fps
         if F == 1:
             context.scene.render.fps = 30
             context.scene.render.fps_base = 1
         else:
-             bpy.context.scene.render.fps = 1
-             bpy.context.scene.render.fps_base = 12
+            context.scene.render.fps = 1
+            context.scene.render.fps_base = 12
 
         return {'FINISHED'}
 
@@ -2205,9 +2220,7 @@ def lock_ui(self, context):
     layout = self.layout
 
     layout.prop(context.space_data.region_3d, 'lock_rotation', text='Lock View Rotation')
-    
 ###### Precise Render Border Adjust by Lapineige :D
-
 bpy.types.Scene.x_min_pixels = bpy.props.IntProperty(min=0, description="Minimum X value (in pixel) for the render border")
 bpy.types.Scene.x_max_pixels = bpy.props.IntProperty(min=0, description="Maximum X value (in pixel) for the render border")
 bpy.types.Scene.y_min_pixels = bpy.props.IntProperty(min=0, description="Minimum Y value (in pixel) for the render border")
@@ -2215,24 +2228,68 @@ bpy.types.Scene.y_max_pixels = bpy.props.IntProperty(min=0, description="Maximum
 
 
 ##############################################################  panel
-class ArtistPanel(Panel):
-    bl_label = "Easy DRAW - 2D in a 3D View"
+class CanvasIncreasePanel(Panel):
+    """A custom panel in the viewport toolbar"""
+    bl_label = "EZ Draw - Increase Canvas"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
-    bl_category = "EZDraw"
-
-
+    bl_category = "EZ Draw"
+    bl_options = {'DEFAULT_CLOSED'}
+    
     @classmethod
     def poll(self, cls):
         return bpy.context.scene.render.engine == 'BLENDER_RENDER'
 
-    def draw_header(self, context):
-        if context.scene.UI_is_activated:
-            pic = 'RADIOBUT_ON'
+    def draw(self, context):
+        scene = context.scene
+        render = context.scene.render
+        
+        layout = self.layout
+        box = layout.box()
+        col = box.column(align=True)
+        if scene.camera != None:
+            #----------------------------
+            row = col.row()
+            row.prop(scene, "camera")
+            row.operator("artist_paint.canvas_resetrot",
+                                 text = "", icon = 'LOAD_FACTORY')
+            cam = scene.camera
+            #----------------------------
+            row = col.row(align=True)
+            row.prop(cam.data, "ortho_scale")
+            #----------------------------
+            row = col.row(align=True)
+            row.prop(cam.data, "shift_x")
+            row.prop(cam.data, "shift_y")
         else:
-            pic = 'RADIOBUT_OFF'
-        self.layout.operator("artist_paint.load_init", text = "",
-                                                    icon = pic)
+            col.label("The scene havn't a camera, please?")
+        #----------------------------
+        row = box.row(align=True)
+        row1 = row.split()
+        row1.label(text="Render Scale")
+        row1.scale_x = 0.60
+        row.prop(render, "resolution_percentage")
+
+
+class ArtistPanel(Panel):
+    bl_label = "EZ Draw - 2D in a 3D View"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_category = "EZ Draw"
+    
+    @classmethod
+    def poll(self, cls):
+        return bpy.context.scene.render.engine == 'BLENDER_RENDER'
+    
+    @staticmethod
+    def draw_header(self, context):
+        self.layout.prop(context.scene, 'UI_is_activated' , text= "")
+        """
+        init = context.scene.UI_is_activated
+        pic = 'RADIOBUT_ON' if init else 'RADIOBUT_OFF'
+        self.layout.operator("artist_paint.load_init", text = "", icon = pic)
+        """
+
 
     def draw(self, context):
         scene = context.scene
@@ -2240,7 +2297,6 @@ class ArtistPanel(Panel):
         addon_prefs = get_addon_preferences()
         buttName_1 = str(addon_prefs.customAngle) +"°"
         buttName_2 = str(addon_prefs.customAngle) +"°"
-
 
         #layout.active
         layout = self.layout
@@ -2277,22 +2333,29 @@ class ArtistPanel(Panel):
 
         toolsettings = context.tool_settings
         ipaint = toolsettings.image_paint
-
+        
+        stencil_text = ""
+        if context.active_object is not None :
+            ob = context.active_object
+            if ob.type == 'MESH' and ob.data.uv_texture_stencil is not None :
+                stencil_text = ob.data.uv_texture_stencil.name
+        
+        # ------------------------------------------------UI Design
         A = layout.row(align = True)
         box = A.box()
         col = box.column(align = True)
         row = col.row(align = True)
         row1 = row.split(align=True)
-        row1.label(text="Image to Canvas, to Camera & Capture")                #IMAGE STATE
+        row1.label(text="SAVING & RENDER")                #IMAGE STATE
         row2 = row.split(align=True)
 
         if scene.game_settings.material_mode == 'GLSL':
             row2.operator("artist_paint.multitexture",
-                    text='', icon="RADIO")
+                          text='Shading', icon="RADIO")
         else:
             row2.operator("artist_paint.glsl",
-                    text='', icon="RENDERLAYERS")
-        row2.scale_x = 1.00
+                          text='Shading', icon="RENDERLAYERS")
+        row2.scale_x = 0.40
 
         col.separator()
         row = col.row(align = True)
@@ -2300,75 +2363,63 @@ class ArtistPanel(Panel):
                     text = "Import canvas", icon = 'IMAGE_COL')
         row.operator("artist_paint.reload_saved_state",
                                         icon = 'LOAD_FACTORY')
-        #place camera buttons here
-        row = col.row(align = True)
-        row1.scale_x = 0.50
+        
+        row = col.row(align = True)#------------------Camera buttons
+        
         row1 = row.split(align=True)
-        row1.label(text="Cam Set")         #INIT
-        row2 = row.split(align=True)
-        row2.operator("artist_paint.cameraview_paint",
+        row1.operator("artist_paint.cameraview_paint",
                     text = "Set Camera",
                     icon = 'RENDER_REGION')
-
-        row3 = row.split(align=True)
-
-        row3.prop(context.space_data.region_3d, 'lock_rotation',\
+        
+        row2 = row.split(align=True)
+        row2.prop(context.space_data.region_3d, 'lock_rotation',\
                     text= "",\
                     icon = 'KEY_HLT')
-
         Icon = 'CLIPUV_DEHLT' if BIA else 'BORDER_RECT'
-        row3.operator("artist_paint.border_toggle",
+        row2.operator("artist_paint.border_toggle",
                     text = "",
                     icon = Icon)
-
-
         Icun = 'CLIPUV_DEHLT' if GAA else 'MOD_LATTICE'
-        row3.operator("artist_paint.guides_toggle",
+        row2.operator("artist_paint.guides_toggle",
                     text = "",
                     icon = Icun)
-
         Ican = 'LOCKED' if PAL else 'UNLOCKED'
-        row3.operator("artist_paint.prefs_lock_toggle",
+        row2.operator("artist_paint.prefs_lock_toggle",
                     text = "",
                     icon = Ican)
-        row3.scale_x = 1.60
-
+        #row2.scale_x = 1.60
+        
+        if BIA:
+            col.separator()
+            row = col.row()
+            row.label(text="Crop Adjust")
+            row.prop(scene.render, "border_max_y", text="Y Max", slider=True)
+            row.label(text="")
+            #----------------------------
+            row = col.row(align=True)
+            row.prop(scene.render, "border_min_x", text="X Min", slider=True)
+            row.prop(scene.render, "border_max_x", text="X Max", slider=True)
+            #----------------------------
+            row = col.row()
+            row.label(text="")
+            row.prop(scene.render, "border_min_y", text="Y Min", slider=True)
+            row.label(text="")
+            col.separator()
 
         row = col.row(align = True)
         row.operator("artist_paint.save_current",
                     text = "Save/Overwrite", icon = 'IMAGEFILE')
         row.operator("artist_paint.save_increm",
                     text = "Incremental Save", icon = 'SAVE_COPY')
-        col.operator("render.opengl",
-                    text = "Snapshot", icon = 'RENDER_STILL')
         
-        scene = context.scene
-        
-        if not scene.render.use_border:
-            sub = layout.split(percentage=0.7)
-            sub.label(icon="ERROR", text="Crop not activated:")
-            sub.prop(scene.render, "use_border")
-        
-        sub = layout.column()
-        row = sub.row()
-        row.label(text="Crop Adjust")
-        row.prop(scene.render, "border_max_y", text="Max Y", slider=True)
-        row.label(text="")
-        row = sub.row(align=True)
-        row.prop(scene.render, "border_min_x", text="Min X", slider=True)
-        row.prop(scene.render, "border_max_x", text="Max X", slider=True)
-        row = sub.row()
-        row.label(text="")
-        row.prop(scene.render, "border_min_y", text="Min Y", slider=True)
-        row.label(text="")
+        for A in (_cycles.get_device_types()):               #If not CPU
+            if A :
+                col.operator("render.opengl", text = "Snapshot", icon = 'RENDER_STILL')
+                break
 
-        row = col.row(align = True)
-        row.operator("artist_paint.sculpt_duplicate", text = "Sculpt Duplicate", icon = 'COPY_ID')
-        row.operator("artist_paint.sculpt_liquid", text = "Sculpt Liquid", icon = 'MOD_WAVE')
-
-        box = layout.box()                             #MACRO
+        box = layout.box()                                   #MACRO
         col = box.column(align = True)
-        col.label(text="Special Setup Macros")               #?
+        col.label(text="SPECIAL SETUP MACROS")               #?
         col.operator("artist_paint.create_brush_scene",
                 text="Create Brush Maker Scene",
                 icon='OUTLINER_OB_CAMERA')
@@ -2386,12 +2437,9 @@ class ArtistPanel(Panel):
         row3.operator("artist_paint.frontof_cw",
                  text= "+"+buttName_2, icon = 'TRIA_RIGHT')
         row3.scale_x = 0.40
-        #col.label('')
-        row = layout.row()
 
+        row = layout.row()
         ########reference maker scene#########
-        #box = layout.box()
-        #col = box.column(align = True)
         row = col.row(align = True)
         row1 = row.split(align=True)
         row1.label(text="Ref Tool")
@@ -2403,8 +2451,6 @@ class ArtistPanel(Panel):
         row3.operator("import_image.to_plane", text="", icon='NODE_SEL')
 
         ########sculpt camera and lock toggle#####
-        #box = layout.box()
-        #col = box.column(align = True)
         row = col.row(align = True)
         row1 = row.split(align=True)
         row1.label(text="Sculpt/Paint View")
@@ -2424,11 +2470,30 @@ class ArtistPanel(Panel):
         if context.scene.render.fps == 1:
             row4.operator("object.slow_play", text="", icon='CAMERA_DATA')
 
-
         col.separator()
+        
         box = layout.box()
         col = box.column(align = True)
-        col.label(text="Canvas Masks Tools")       #OBJECTS MASKING TOOLS
+        col.label(text="CANVAS MASKS TOOLS")               #CANVAS MASKING TOOLS
+        col.prop(ipaint, "use_stencil_layer", text="Stencil Mask")
+        if ipaint.use_stencil_layer:
+            col.menu("VIEW3D_MT_tools_projectpaint_stencil", text=stencil_text, translate=False)
+            col.template_ID(ipaint, "stencil_image", open="image.open")
+            col.operator("image.new", text="New stencil").gen_context = 'PAINT_STENCIL'
+            row = col.row(align = True)
+            row.prop(ipaint, "stencil_color", text="")
+            row.prop(ipaint, "invert_stencil",
+                        text="Invert the mask",
+                        icon='IMAGE_ALPHA')
+        
+        col.separator()
+        
+        row = col.row(align = True)
+        row.operator("artist_paint.sculpt_duplicate", text = "New Dupli. Sculpt Mask", icon = 'COPY_ID')
+        row.operator("artist_paint.sculpt_liquid", text = "Liquid Sculpt", icon = 'MOD_WAVE')
+        
+        col.separator()
+        
         col.operator("artist_paint.trace_selection",
                     text = "Mesh Mask from Gpencil",
                     icon = 'OUTLINER_OB_MESH')
@@ -2447,23 +2512,6 @@ class ArtistPanel(Panel):
                     text = "To Inverted Mesh Mask",
                     icon = 'MOD_TRIANGULATE')
 
-        col.separator()
-
-        col.prop(ipaint, "use_stencil_layer", text="Stencil Mask")
-
-        col.separator()
-
-        if ipaint.use_stencil_layer == True:
-            col.template_ID(ipaint, "stencil_image")
-            col.operator("image.new", text="New").\
-                                        gen_context = 'PAINT_STENCIL'
-            row = col.row(align = True)
-            row.prop(ipaint, "stencil_color", text="")
-            row.prop(ipaint, "invert_stencil",
-                        text="Invert the mask",
-                        icon='IMAGE_ALPHA')
-
-        col.separator()
         col.separator()
 
         row = col.row(align = True)                        #BOOL MASK AND REUSE
@@ -2523,6 +2571,8 @@ class ArtistPanel(Panel):
         box = layout.box()                        #CANVAS FRAME CONSTRAINT
         col = box.column(align = True)
         row = col.row(align=True)
+        row.label(text="CANVAS MOVEMENT")
+        row = col.row(align=True)
         row1 = row.split()
         row1.label(text="Mirror")
         row2 = row.split(align=True)
@@ -2532,7 +2582,7 @@ class ArtistPanel(Panel):
         row.separator()
         row3 = row.split(align=True)
         row3.operator("artist_paint.set_symmetry_origin",
-                    text=" New", icon='PLUS')
+                    text=" New", icon='VIEW3D_VEC')
         row3.scale_x = 1.50
         row4 = row.split(align=True)
         row4.operator("artist_paint.reset_origin", icon='RECOVER_AUTO')
@@ -2569,56 +2619,53 @@ class ArtistPanel(Panel):
         col.operator("artist_paint.canvas_resetrot",
                     text = "Reset Rotation", icon = 'CANCEL')
 
-class CanvasIncreasePanel(bpy.types.Panel):
-    
-    bl_label = "Canvas Increase Tools"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
-    bl_category = "EZDraw"
-    
-    def draw(self, context):
-        layout = self.layout 
-        
-        cam = context.object.data
-        render = context.scene.render
-        
-        row = layout.row()
-        
-        row.prop(cam, "ortho_scale")
-        row = layout.row(align=True)
-        row.prop(cam, "shift_x")
-        row.prop(cam, "shift_y")
-        row = layout.row()
-        row.prop(render, "resolution_percentage")
 
 class ArtistTips(Panel):
-    bl_label = "Texture Paint Plus Tips"
+    bl_label = "EZ Tools Tips"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
-    bl_category = "EZDraw"
-
+    bl_category = "EZ Draw"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    @classmethod
+    def poll(self, cls):
+        return bpy.context.scene.render.engine == 'BLENDER_RENDER'
+    
     def draw(self, context):
         layout = self.layout
-
-        row = layout.row()
-        row.label(text="win key+W = EZDraw Pie")
-        row = layout.row()
-        row.label(text="W = Brush Popup")
-        row = layout.row()
-        row.label(text="Shift-W = Slots& VGroups")
-        row = layout.row()
-        row.label(text="Alt-W = Texture/Mask Texture")
-
+        col = layout.column(align=True)
+        
+        col.label(text="EZ Draw______________")
+        col.label(text="        Pie => Win key + W")
+        
+        col.separator()
+        
+        col.label(text="EZ Paint______________")
+        col.label(text="        Brush Popup => W")
+        col.label(text="        Slots & VGroups Popup => Shift + W")
+        col.label(text="        Paint Texture/Mask Popup => Alt + W")
+        
+        col.separator
+        
+        col.label(text="EZ Sculpt______________")
 
 
 def update_panel(self, context):
     #author: Thks mano-wii
+    cat = context.user_preferences.addons[__name__].preferences.category
     try:
+        bpy.utils.unregister_class(CanvasIncreasePanel)
         bpy.utils.unregister_class(ArtistPanel)
+        bpy.utils.unregister_class(ArtistTips)
     except:
         pass
-    ArtistPanel.bl_category = context.user_preferences.addons[__name__].preferences.category
+    CanvasIncreasePanel.bl_category = cat
+    ArtistPanel.bl_category = cat
+    ArtistTips.bl_category = cat
+    
+    bpy.utils.register_class(CanvasIncreasePanel)
     bpy.utils.register_class(ArtistPanel)
+    bpy.utils.register_class(ArtistTips)
 
 #-----------------------------------------------Preferences of add-on
 class EasyDrawPrefs(AddonPreferences):
@@ -2645,7 +2692,7 @@ class EasyDrawPrefs(AddonPreferences):
     category = bpy.props.StringProperty(
             name="Category",
             description="Choose a name for the category of the panel",
-            default="EZDraw",
+            default="EZ Draw",
             update=update_panel)
 
     def check(context):
