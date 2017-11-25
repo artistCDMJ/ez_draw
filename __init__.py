@@ -24,7 +24,7 @@
 bl_info = {"name": "EZ_Draw",
            "author": "CDMJ, Spirou4D, proxe, Jason van Gumster (Fweeb)",
            "version": (2, 30),
-           "blender": (2, 78, 0),
+           "blender": (2, 79, 0),
            "location": "Toolbar > Misc Tab > EZ Draw",
            "description": "2D Paint Tools for 3D view",
            "warning": "Run only in BI now",
