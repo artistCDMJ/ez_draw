@@ -434,7 +434,7 @@ class ArtistTips(Panel):
         col = layout.column(align=True)
 
         col.label(text="EZ Draw______________")
-        col.label(text="        Pie => Os key + W")
+        col.label(text="        Pie => F7")
 
         col.separator() #---------------------------Empty line
 
@@ -442,6 +442,7 @@ class ArtistTips(Panel):
         col.label(text="        Brush Popup => W")
         col.label(text="        Slots & VGroups Popup => Shift + W")
         col.label(text="        Paint Texture/Mask Popup => Alt + W")
+        col.label(text-"        Image Editor Popup => Shift + Alt + W")
 
         col.separator() #---------------------------Empty line
 
