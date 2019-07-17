@@ -104,11 +104,11 @@ def main_canvas_data(self, context):
     if scene.ezdraw is not None:                          #if main canvas isn't erased
         if len(scene.ezdraw) > 0:
             for main_canvas in scene.ezdraw:          #look main canvas name
-                name = (main_canvas.filename)[:-4]    #find the name of the maincanvas
-                ext = (main_canvas.filename)[-4:]
-                filepath = main_canvas.path
-                dimX = main_canvas.dimX
-                dimY =  main_canvas.dimY
+                name : (main_canvas.filename)[:-4]    #find the name of the maincanvas
+                ext : (main_canvas.filename)[-4:]
+                filepath : main_canvas.path
+                dimX : main_canvas.dimX
+                dimY :  main_canvas.dimY
 
     return [name, ext, filepath, dimX, dimY]
 
