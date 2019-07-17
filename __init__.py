@@ -23,11 +23,11 @@
 
 bl_info = {"name": "EZ_Draw",
            "author": "CDMJ, Spirou4D, proxe, Jason van Gumster (Fweeb)",
-           "version": (2, 30),
-           "blender": (2, 79, 0),
-           "location": "Toolbar > Misc Tab > EZ Draw",
+           "version": (2, 40),
+           "blender": (2, 80, 0),
+           "location": "UI > EZ Draw",
            "description": "2D Paint Tools for 3D view",
-           "warning": "Run only in BI now",
+           "warning": "Incomplete for now",
            "wiki_url": "",
            "category": "Paint"}
 
@@ -112,15 +112,22 @@ class EasyDrawPrefs(AddonPreferences):
             row = layout.row(align=True)
             row.label(text="Panel's location (category): ")
             row.prop(self, "category", text="")
-
+classes = (
+           EasyDrawPrefs,
+            
+)
 
 def register():
-    bpy.utils.register_class(EasyDrawPrefs)
+    from bpy.utils import register_class
+    for cls in classes:
+        register_class(cls)
     bpy.utils.register_module(__name__)
     update_panel(None, bpy.context)
 
 def unregister():
-    bpy.utils.unregister_class(EasyDrawPrefs)
+    from bpy.utils import unregister_class
+    for cls in reversed(classes):
+        unregister_class(cls)
     bpy.utils.unregister_module(__name__)
 
 
