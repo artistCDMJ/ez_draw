@@ -235,11 +235,6 @@ class EZ_DRAW_image_to_canvas(Operator, AddObjectHelper):
 
     # -------------------------
     # Blender material options.
-   ''' t = bpy.types.Material.bl_rna.properties["use_shadeless"]
-    use_shadeless = BoolProperty(name=t.name, \
-                                 default=False, \
-                                 description=t.description)'''
-
     use_transparency = BoolProperty(name="Use Alpha", \
                                     default=False, \
                                     description="Use alphachannel for transparency")
