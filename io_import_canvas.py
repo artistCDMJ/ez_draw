@@ -154,19 +154,19 @@ class EZ_DRAW_image_to_canvas(Operator, AddObjectHelper):
 
     # -----------
     # File props.
-    files = CollectionProperty(type=bpy.types.OperatorFileListElement, \
+    files : CollectionProperty(type=bpy.types.OperatorFileListElement, \
                                options={'HIDDEN', 'SKIP_SAVE'})
 
-    directory = StringProperty(maxlen=1024, \
+    directory : StringProperty(maxlen=1024, \
                                subtype='FILE_PATH', \
                                options={'HIDDEN', 'SKIP_SAVE'}
                                )
 
     # Show only images/videos, and directories!
-    filter_image = BoolProperty(default=True, options={'HIDDEN', 'SKIP_SAVE'})
-    filter_movie = BoolProperty(default=True, options={'HIDDEN', 'SKIP_SAVE'})
-    filter_folder = BoolProperty(default=True, options={'HIDDEN', 'SKIP_SAVE'})
-    filter_glob = StringProperty(default="", options={'HIDDEN', 'SKIP_SAVE'})
+    filter_image : BoolProperty(default=True, options={'HIDDEN', 'SKIP_SAVE'})
+    filter_movie : BoolProperty(default=True, options={'HIDDEN', 'SKIP_SAVE'})
+    filter_folder : BoolProperty(default=True, options={'HIDDEN', 'SKIP_SAVE'})
+    filter_glob : StringProperty(default="", options={'HIDDEN', 'SKIP_SAVE'})
 
     # --------
     # Options.
@@ -203,7 +203,7 @@ class EZ_DRAW_image_to_canvas(Operator, AddObjectHelper):
         # XXX Seems to be necessary, else not all changes above take effect...
         #~ bpy.ops.file.refresh()
     
-    extension = EnumProperty(name="Extension", \
+    extension : EnumProperty(name="Extension", \
                              items=gen_ext_filter_ui_items(),
                              description="Only import files of this type", \
                              update=update_extensions)
@@ -215,12 +215,12 @@ class EZ_DRAW_image_to_canvas(Operator, AddObjectHelper):
         ('DPI', "Dpi", "Use definition of the image as dots per inch"),
         ('DPBU', "Dots/BU", "Use definition of the image as dots per Blender Unit"),
     )
-    size_mode = EnumProperty(name="Size Mode", \
+    size_mode : EnumProperty(name="Size Mode", \
                              default='ABSOLUTE', \
                              items=_size_modes, \
                              description="How the size of the plane is computed")
 
-    height = FloatProperty(name="Height", \
+    height : FloatProperty(name="Height", \
                            description="Height of the created plane",
                            default=1.0, \
                            min=0.001, \
@@ -228,62 +228,62 @@ class EZ_DRAW_image_to_canvas(Operator, AddObjectHelper):
                            subtype='DISTANCE', \
                            unit='LENGTH')
 
-    factor = FloatProperty(name="Definition", \
+    factor : FloatProperty(name="Definition", \
                            min=1.0, \
                            default=600.0,
                            description="Number of pixels per inch or Blender Unit")
 
     # -------------------------
     # Blender material options.
-    use_transparency = BoolProperty(name="Use Alpha", \
+    use_transparency : BoolProperty(name="Use Alpha", \
                                     default=False, \
                                     description="Use alphachannel for transparency")
 
-    t = bpy.types.Material.bl_rna.properties["transparency_method"]
-    items = tuple((it.identifier, it.name, it.description) for it in t.enum_items)
+    t : bpy.types.Material.bl_rna.properties["transparency_method"]
+    items : tuple((it.identifier, it.name, it.description) for it in t.enum_items)
     
-    transparency_method = EnumProperty(name="Transp. Method", \
+    transparency_method : EnumProperty(name="Transp. Method", \
                                        description=t.description, \
                                        items=items)
 
-    t = bpy.types.Material.bl_rna.properties["use_transparent_shadows"]
-    use_transparent_shadows = BoolProperty(name=t.name, \
+    t : bpy.types.Material.bl_rna.properties["use_transparent_shadows"]
+    use_transparent_shadows : BoolProperty(name=t.name, \
                                            default=False, \
                                            description=t.description)
 
     #-------------------------
     # Cycles material options.
-    shader = EnumProperty(name="Shader", \
+    shader : EnumProperty(name="Shader", \
                           items=CYCLES_SHADERS, \
                           description="Node shader to use")
 
-    overwrite_node_tree = BoolProperty(name="Overwrite Material", \
+    overwrite_node_tree : BoolProperty(name="Overwrite Material", \
                                        default=True,
                                        description="Overwrite existing Material with new nodetree "
                                                    "(based on material name)")
 
     # --------------
     # Image Options.
-    t = bpy.types.Image.bl_rna.properties["alpha_mode"]
-    alpha_mode_items = tuple((e.identifier, e.name, e.description) for e in t.enum_items)
-    alpha_mode = EnumProperty(name=t.name, \
+    t : bpy.types.Image.bl_rna.properties["alpha_mode"]
+    alpha_mode_items : tuple((e.identifier, e.name, e.description) for e in t.enum_items)
+    alpha_mode : EnumProperty(name=t.name, \
                               items=alpha_mode_items, \
                               default=t.default, \
                               description=t.description)
 
     t = bpy.types.IMAGE_OT_match_movie_length.bl_rna
-    match_len = BoolProperty(name=t.name, \
+    match_len : BoolProperty(name=t.name, \
                              default=True, description=t.description)
 
     t = bpy.types.Image.bl_rna.properties["use_fields"]
-    use_fields = BoolProperty(name=t.name, \
+    use_fields : BoolProperty(name=t.name, \
                               default=False, description=t.description)
 
-    t = bpy.types.ImageUser.bl_rna.properties["use_auto_refresh"]
-    use_auto_refresh = BoolProperty(name=t.name, \
+    t : bpy.types.ImageUser.bl_rna.properties["use_auto_refresh"]
+    use_auto_refresh : BoolProperty(name=t.name, \
                                     default=True, description=t.description)
 
-    relative = BoolProperty(name="Relative", \
+    relative : BoolProperty(name="Relative", \
                             default=True, description="Apply relative paths")
 
     def draw(self, context):
@@ -357,7 +357,7 @@ class EZ_DRAW_image_to_canvas(Operator, AddObjectHelper):
         engine = context.scene.render.engine
         import_list, directory = self.generate_paths()
 
-        images = tuple(load_image(path, directory, check_existing=True, force_reload=self.force_reload)
+        images : tuple(load_image(path, directory, check_existing=True, force_reload=self.force_reload)
                        for path in import_list)
 
         for img in images:
@@ -372,7 +372,7 @@ class EZ_DRAW_image_to_canvas(Operator, AddObjectHelper):
             self.report({'ERROR'}, "Cannot generate materials for unknown %s render engine" % engine)
             return
 
-        planes = tuple(self.create_image_plane(context, mat) for mat in materials)
+        planes : tuple(self.create_image_plane(context, mat) for mat in materials)
 
         context.scene.update()
         if self.align:
