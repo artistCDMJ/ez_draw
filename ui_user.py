@@ -32,11 +32,12 @@ from .utils import *
 
 
 ######################################################################## PANEL 1
-class CanvasIncreasePanel(Panel):
-    """A custom panel in the viewport toolbar"""
+class UI_PT_CanvasIncreasePanel(Panel):
+    """Increase Canvas Dimension"""
     bl_label = "EZ Draw - Increase Canvas"
+    bl_idname = "UI_PT_CanvasIncreasePanel"
     bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
+    bl_region_type = 'UI'
     bl_category = "EZ Draw"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -76,10 +77,11 @@ class CanvasIncreasePanel(Panel):
 
 
 ######################################################################## PANEL 2
-class ArtistPanel(Panel):
+class UI_PT_ArtistPanel(Panel):
     bl_label = "EZ Draw - 2D in a 3D View"
+    bl_idnmae = "UI_PT_ArtistPanel"
     bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
+    bl_region_type = 'UI'
     bl_category = "EZ Draw"
 
     @classmethod
@@ -418,8 +420,9 @@ class ArtistPanel(Panel):
 
 
 ######################################################################## PANEL 3
-class ArtistTips(Panel):
+class UI_PT_ArtistTips(Panel):
     bl_label = "EZ Tools Tips"
+    bl_idname = "UI_PT_ArtistTips"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
     bl_category = "EZ Draw"
