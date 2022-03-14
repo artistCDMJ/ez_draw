@@ -145,15 +145,15 @@ class ImageReload(Operator):
             return B
 
     def execute(self, context):
-        original_type = context.area.type
-        context.area.type = 'IMAGE_EDITOR'
-        
+        original_type = context.area.ui_type
+        context.area.ui_type = 'IMAGE_EDITOR'
+       
         obdat =  context.active_object.data
-        ima = obdat.materials[0].texture_slots[0].texture.image
+        ima = obdat.materials[0].texture_paint_images[0]
         context.space_data.image = ima
         bpy.ops.image.reload()                 #return image to last saved state
         
-        context.area.type = original_type
+        context.area.ui_type = original_type
         return {'FINISHED'}
 
 #---------------------------------------------------------------------IMAGE SAVE
